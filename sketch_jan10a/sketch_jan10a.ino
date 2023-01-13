@@ -7,7 +7,7 @@
 #include <string.h>
 
 using namespace tinyxml2;
-char * testDocument = "<root><value>26.74</value></root>";
+char* testDocument = "<root><value>26.74</value></root>";
 
 //setando configuraçoes do BLE
 
@@ -22,7 +22,12 @@ char * testDocument = "<root><value>26.74</value></root>";
 #define CHARACTERISTIC_UUID_TX "0972EF8C-7613-4075-AD52-756F33D4DA91"
 
 //Nome do dispositivo
-#define bleServerName "IoT_Sensor_balança"
+#define bleServerName "IoT_Sensor_phmetro"
+
+//Definindo RS232 Serial
+#define RXD2 16
+#define TXD2 17
+
 
 //comando para balança 
 #define COMANDO                   "D05\r"
@@ -36,10 +41,33 @@ std::string valorRes = "";
 std::string rxValue = "";
 int w = 0;
 
+const char* convertStringToChar(std::string text){
+  int textSize = text.length();
+  const char* charReturn =  text.c_str();
+  //text.toCharArray(charReturn, textSize);
+  
+  Serial.println(charReturn);
+  
+  Serial.println("convertStringToChar");
+  Serial.println(charReturn);
+  
+  return charReturn;
+  //return "<root><value>26.74</value></root>";
+}
+
+void clearSerial(){
+  while(Serial.available() > 0){
+    char nextChar = Serial.read();
+  }
+}
+
 //funçao para se obter valor com base num arquivo XML
-double getValueFromXML(char* xml){
+double getValueFromXML(const char* xml){
 
   XMLDocument xmlDocument;
+  
+  Serial.println("getValueFromXML");
+  Serial.println(xml);
 
   //refatorar o seguinte codigo:
   if(xmlDocument.Parse(xml) != XML_SUCCESS){
@@ -55,6 +83,22 @@ double getValueFromXML(char* xml){
 
   return value;
 
+}
+
+std::string getValueFromSerial(){
+  Serial.println(COMANDO);
+  Serial.write(COMANDO);
+
+  std::string fromSerial = "";
+
+  while(fromSerial == ""){
+    if(Serial.available()){
+      fromSerial = Serial.readString().c_str();
+    }
+    delay(500);
+  }
+
+  return fromSerial;
 }
 
 //setup callbacks de eventos do servidor
@@ -84,8 +128,12 @@ class CharacteristicCallbacks: public BLECharacteristicCallbacks {
       }
     Serial.println();
 
-      if(rxValue == "L"){
-        double value = getValueFromXML(testDocument);
+      if(rxValue == "L"){ //se tiver recebido o comando
+        std::string serialRes = getValueFromSerial();
+
+        const char* serialReslChar = convertStringToChar(serialRes);
+        
+        double value = getValueFromXML(serialReslChar);
         Serial.println(value);
 
         //converte o numero recebido para a string ou array de char de resultado
@@ -129,18 +177,20 @@ void setupBLE(){
 }
 
 void setup() {
-  Serial.begin(115200);
+  Serial.begin(115200); //Serial para debugging
+  //Serial2.begin(9600, SERIAL_8N1, RXD2, TXD2); para comunicaçao com equipamento
   setupBLE();
 }
 
 void loop() {
 
-  //verifica se foi notificado tem envia o valor da leitura de volta 
+  //verifica se tem valor de resposta pronto, em caso afirmativo envia o valor da leitura de volta 
   if(deviceConnected && rxValue == "L" && valorRes != ""){
     characteristicTX->setValue(valorRes);
     characteristicTX->notify();
 
     rxValue = "";
     valorRes = "";
+    clearSerial();
   }
 }
