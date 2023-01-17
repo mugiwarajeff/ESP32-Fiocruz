@@ -86,7 +86,6 @@ double getValueFromXML(const char* xml){
 }
 
 std::string getValueFromSerial(){
-  Serial.println(COMANDO);
   Serial.write(COMANDO);
 
   std::string fromSerial = "";
@@ -97,7 +96,7 @@ std::string getValueFromSerial(){
     }
     delay(500);
   }
-
+  
   return fromSerial;
 }
 
@@ -184,6 +183,8 @@ void setup() {
 
 void loop() {
 
+  //Serial.write(COMANDO);
+  //sleep(1);
   //verifica se tem valor de resposta pronto, em caso afirmativo envia o valor da leitura de volta 
   if(deviceConnected && rxValue == "L" && valorRes != ""){
     characteristicTX->setValue(valorRes);
