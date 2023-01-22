@@ -85,6 +85,10 @@ double getValueFromXML(const char* xml){
 
 }
 
+double getValueFromCSV(){
+  
+}
+
 std::string getValueFromSerial(){
   Serial.write(COMANDO);
 
